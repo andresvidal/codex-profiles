@@ -10,9 +10,23 @@ The goal is to let the same repository be open in separate VS Code windows, with
 - Prefer isolated `CODEX_HOME` directories for profiles.
 - Treat each VS Code window as an independent profile/session boundary.
 - Keep authentication owned by Codex.
+- Preserve the user's existing Codex home by default.
+- Never delete Codex profile data during extension uninstall.
 - Use TypeScript, strict typing, and small modular files.
 - Document important architectural decisions and trade-offs.
 - Prefer supported APIs over undocumented internals.
+
+## Profiles
+
+Codex Profiles always exposes an implicit `Default` profile.
+
+- If `CODEX_HOME` is already set, `Default` uses that value.
+- Otherwise `Default` resolves to the normal user Codex home at `~/.codex`.
+- Installing, disabling, or uninstalling the extension does not move, rewrite, or delete that directory.
+
+Use **Codex Profiles: Create Profile** to add another profile. The extension asks for a profile name, proposes an isolated home such as `~/.codex-profiles/work`, and lets you edit the path before creating it. Existing directories require explicit confirmation before use.
+
+Custom profile directories are user data. They remain on disk if the extension is disabled or uninstalled.
 
 ## Roadmap
 
@@ -20,14 +34,14 @@ The goal is to let the same repository be open in separate VS Code windows, with
 
 - VS Code extension scaffold
 - Profile configuration
-- Profile selection commands
+- Built-in Default profile
+- Profile creation and selection commands
 - Active-profile state
 - Status bar
 - Architecture documentation
 
 ### Phase 2 — Profile switching
 
-- Profile creation
 - Profile-specific `CODEX_HOME`
 - Per-session Codex launching
 - Multiple profiles
@@ -49,7 +63,7 @@ Open the same repository in a new VS Code window using a different Codex profile
 
 Codex Profiles does not copy, modify, inspect, or swap authentication tokens.
 
-Profiles are intended to rely on supported Codex isolation mechanisms such as separate `CODEX_HOME` directories. Authentication remains owned by Codex.
+Profiles rely on supported Codex isolation mechanisms such as separate `CODEX_HOME` directories. Authentication remains owned by Codex.
 
 ## Development
 
