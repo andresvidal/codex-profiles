@@ -54,12 +54,21 @@ export function registerCommands(
     }),
 
     vscode.commands.registerCommand('codexProfiles.createProfile', async () => {
+      const previousProfile = store.get();
       try {
         await createProfile(store, statusBar, logger);
-        const bindResult = ideRuntime.bindBeforeActivation(store.get());
+        const createdProfile = store.get();
+        if (createdProfile.id === previousProfile.id) {
+          return;
+        }
+
+        const bindResult = ideRuntime.bindBeforeActivation(createdProfile);
         if (bindResult.kind === 'requires-reload') {
+          store.set(previousProfile);
+          statusBar.refresh();
           await vscode.window.showInformationMessage(
-            `Created “${store.get().name}”. Codex is already active in this window, so the IDE account remains unchanged until a reload-safe handoff is available. You can use Launch Codex CLI with the new profile now.`,
+            `Created “${createdProfile.name}”, but Codex is already active in this window, so ${previousProfile.name} remains active here. ` +
+            'Select the new profile in a window before opening Codex, or use Launch Codex CLI with it from a window where it is active.',
           );
         }
       } catch (error) {
