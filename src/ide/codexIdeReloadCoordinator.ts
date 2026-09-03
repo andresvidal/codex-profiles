@@ -39,7 +39,7 @@ export class CodexIdeReloadCoordinator {
   }
 
   async restoreAfterReload(activeProfile: CodexProfile): Promise<void> {
-    const pending = this.windowState.getPendingRestore();
+    const pending = await this.windowState.getPendingRestore();
     if (!pending || pending.profileId.toLocaleLowerCase() !== activeProfile.id.toLocaleLowerCase()) {
       return;
     }
