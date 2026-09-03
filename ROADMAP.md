@@ -36,6 +36,7 @@ Deliverables:
 
 - [x] Profile-specific `CODEX_HOME` environment builder
 - [x] `Launch Codex CLI` terminal integration
+- [x] Pure, cross-platform terminal launch-plan test confirming only `CODEX_HOME` is overridden and the normal `codex` command is used
 - [x] Normal Codex authentication flow retained for unauthenticated account homes
 - [x] Default Codex profile remains untouched
 - [x] Shared-vs-isolated Codex configuration mode
@@ -47,7 +48,7 @@ Deliverables:
 - [x] CI invariant preventing production auth-file or SecretStorage credential management
 - [x] Per-profile VS Code `--user-data-dir` architecture removed
 - [ ] Multiple account support validated during real Codex CLI sessions
-- [ ] VS Code-host integration test for terminal launch options
+- [ ] VS Code Extension Host integration test for terminal creation and command dispatch
 
 Exit criteria:
 
@@ -59,11 +60,14 @@ Goal: let the same repository be open in normal VS Code windows while each Codex
 
 Deliverables:
 
-- [ ] Identify and validate a supported Codex IDE/app-server runtime binding for account home selection
-- [ ] Keep VS Code settings, extensions, themes, keybindings, and extension state shared
-- [ ] Bind the selected account home only to the Codex runtime in each window
-- [ ] Support two simultaneous windows with different Codex accounts against the same repository
-- [ ] Define runtime restart/reload behavior when changing the active account
+- [x] Identify a viable pre-activation binding seam: set the selected `CODEX_HOME` before `openai.chatgpt` activates and spawns app-server
+- [x] Experimental `CodexIdeRuntimeAdapter` with tests for pre-activation binding and already-active runtime refusal
+- [x] Keep VS Code settings, extensions, themes, keybindings, and extension state shared
+- [x] Refuse misleading switches when the official runtime is already active with a different home
+- [ ] Validate the pre-activation seam against current official Codex IDE builds on Windows, macOS, and Linux
+- [ ] Validate two simultaneous normal VS Code windows with different homes against the same repository
+- [ ] Implement a reload-safe per-window handoff that does not collide when two windows open the same repository
+- [ ] Define and validate runtime restart/reload behavior when changing the active account after Codex activation
 - [ ] Preserve the Codex-owned authentication boundary; do not solve IDE binding with auth-file swapping
 - [ ] Cross-window and cross-platform integration tests
 - [ ] Remote SSH / WSL / Dev Container behavior documented
