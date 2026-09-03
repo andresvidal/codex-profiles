@@ -35,12 +35,13 @@ Goal: launch Codex sessions with explicit profile isolation.
 
 Deliverables:
 
-- [ ] Profile-specific `CODEX_HOME` environment builder
-- [ ] Supported Codex launch integration
-- [ ] Graceful handling of unauthenticated profiles
-- [ ] Multiple profile support during real Codex sessions
-- [ ] Switching applies only to newly launched sessions
-- [ ] Integration tests proving environment isolation
+- [x] Profile-specific `CODEX_HOME` environment builder
+- [x] Codex CLI terminal launch integration
+- [x] Normal Codex authentication flow retained for unauthenticated profiles
+- [ ] Multiple profile support validated during real Codex sessions
+- [x] Switching applies only to newly launched sessions
+- [x] Unit tests proving environment isolation
+- [ ] VS Code-host integration test for terminal launch options
 
 Exit criteria:
 
