@@ -10,9 +10,14 @@ Deliverables:
 - [x] Strict TypeScript configuration
 - [x] Profile domain model
 - [x] Profile configuration loading and validation
+- [x] Built-in Default profile resolved from `CODEX_HOME` or `~/.codex`
+- [x] Non-destructive profile data lifecycle documented
+- [x] Profile creation workflow
+- [x] Path expansion and validation for `codexHome`
 - [x] Window-local active profile state
 - [x] Status bar
 - [x] Select Profile command
+- [x] Create Profile command
 - [x] Show Active Profile command
 - [x] Architecture documentation
 - [x] Authentication-boundary ADR
@@ -22,7 +27,7 @@ Deliverables:
 
 Exit criteria:
 
-The extension can define profiles, select one independently for a VS Code window, and display it without touching authentication material.
+The extension starts each VS Code window on the user's existing Codex home, can create and select isolated custom profiles independently for that window, and never touches authentication material or deletes profile directories as part of the extension lifecycle.
 
 ## Phase 2 — Profile switching
 
@@ -30,12 +35,10 @@ Goal: launch Codex sessions with explicit profile isolation.
 
 Deliverables:
 
-- [ ] Profile creation workflow
-- [ ] Path expansion and validation for `codexHome`
 - [ ] Profile-specific `CODEX_HOME` environment builder
 - [ ] Supported Codex launch integration
 - [ ] Graceful handling of unauthenticated profiles
-- [ ] Multiple profile support
+- [ ] Multiple profile support during real Codex sessions
 - [ ] Switching applies only to newly launched sessions
 - [ ] Integration tests proving environment isolation
 
