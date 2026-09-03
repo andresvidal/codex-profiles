@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { getConfiguredProfiles } from '../configuration/configuration';
+import { getAvailableProfiles } from '../configuration/configuration';
 import type { ActiveProfileStore } from '../profiles/activeProfileStore';
 import type { ProfileStatusBar } from '../status/profileStatusBar';
+import { createProfile } from './createProfile';
 
 export function registerCommands(
   context: vscode.ExtensionContext,
@@ -10,15 +11,7 @@ export function registerCommands(
 ): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('codexProfiles.selectProfile', async () => {
-      const profiles = getConfiguredProfiles();
-
-      if (profiles.length === 0) {
-        await vscode.window.showInformationMessage(
-          'No Codex profiles are configured. Add entries to codexProfiles.profiles in VS Code settings.',
-        );
-        return;
-      }
-
+      const profiles = getAvailableProfiles();
       const selected = await vscode.window.showQuickPick(
         profiles.map((profile) => ({
           label: profile.name,
@@ -36,13 +29,15 @@ export function registerCommands(
       statusBar.refresh();
     }),
 
+    vscode.commands.registerCommand('codexProfiles.createProfile', async () => {
+      await createProfile(store, statusBar);
+    }),
+
     vscode.commands.registerCommand('codexProfiles.showActiveProfile', async () => {
       const profile = store.get();
-      const message = profile
-        ? `Active Codex profile: ${profile.name} (${profile.codexHome})`
-        : 'No Codex profile is active in this VS Code window.';
-
-      await vscode.window.showInformationMessage(message);
+      await vscode.window.showInformationMessage(
+        `Active Codex profile: ${profile.name} (${profile.codexHome})`,
+      );
     }),
   );
 }
