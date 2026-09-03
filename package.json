@@ -1,7 +1,7 @@
 {
   "name": "codex-profiles",
   "displayName": "Codex Profiles",
-  "description": "Manage multiple OpenAI Codex profiles cleanly across VS Code windows.",
+  "description": "Switch Codex accounts without changing your VS Code development environment.",
   "version": "0.0.1",
   "publisher": "andresvidal",
   "engines": {
@@ -31,10 +31,6 @@
       {
         "command": "codexProfiles.launchCodexCli",
         "title": "Codex Profiles: Launch Codex CLI"
-      },
-      {
-        "command": "codexProfiles.openWorkspaceWithProfile",
-        "title": "Codex Profiles: Open Workspace With Profile…"
       }
     ],
     "configuration": {
@@ -43,32 +39,24 @@
         "codexProfiles.profiles": {
           "type": "array",
           "default": [],
-          "description": "Custom Codex profiles. The built-in Default profile is resolved from CODEX_HOME or the normal ~/.codex home and is not stored here. Authentication remains owned by Codex inside each CODEX_HOME.",
+          "scope": "machine",
+          "description": "Custom Codex account profiles. Default uses the existing CODEX_HOME or ~/.codex. New profiles isolate account state in their own Codex home and share the Default Codex configuration unless configMode is isolated.",
           "items": {
             "type": "object",
             "required": ["id", "name", "codexHome"],
             "properties": {
               "id": { "type": "string" },
               "name": { "type": "string" },
-              "codexHome": { "type": "string" }
+              "codexHome": { "type": "string" },
+              "configMode": {
+                "type": "string",
+                "enum": ["shared", "isolated"],
+                "default": "shared",
+                "description": "Whether this account receives the Default profile's Codex config.toml before launch or keeps its own independent Codex configuration."
+              }
             },
             "additionalProperties": false
           }
-        },
-        "codexProfiles.vscodeCliPath": {
-          "type": "string",
-          "default": "code",
-          "description": "VS Code CLI executable used to open isolated profile windows. Set an absolute path if the 'code' command is not available on PATH."
-        },
-        "codexProfiles.vscodeUserDataRoot": {
-          "type": "string",
-          "default": "~/.codex-profiles/vscode-data",
-          "description": "Root directory for per-profile VS Code user-data directories used to isolate window environments."
-        },
-        "codexProfiles.vscodeExtensionsDir": {
-          "type": "string",
-          "default": "",
-          "description": "Optional shared VS Code extensions directory for isolated profile windows. Empty uses VSCODE_EXTENSIONS or the normal VS Code extensions directory."
         }
       }
     }
@@ -80,11 +68,7 @@
     "test": "tsx --test test/**/*.test.ts",
     "ci": "npm run check && npm test"
   },
-  "dependencies": {
-    "cross-spawn": "^7.0.6"
-  },
   "devDependencies": {
-    "@types/cross-spawn": "^6.0.6",
     "@types/node": "^22.10.0",
     "@types/vscode": "^1.104.0",
     "tsx": "^4.19.2",
