@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { getDefaultProfile } from '../profiles/defaultProfile';
 import type { CodexProfile } from '../profiles/profile';
 import { pathsEqual } from '../profiles/profilePaths';
+import { readProfileCatalog } from '../workspace/profileHandoff';
 
 const SECTION = 'codexProfiles';
 const PROFILES_KEY = 'profiles';
@@ -14,7 +15,9 @@ export function getConfiguredProfiles(): readonly CodexProfile[] {
 }
 
 export function getAvailableProfiles(): readonly CodexProfile[] {
-  return [getDefaultProfile(), ...getConfiguredProfiles()];
+  const handedOffProfiles = readProfileCatalog();
+  const baseline = handedOffProfiles.length > 0 ? handedOffProfiles : [getDefaultProfile()];
+  return deduplicateProfiles([...baseline, ...getConfiguredProfiles()]);
 }
 
 export async function addConfiguredProfile(profile: CodexProfile): Promise<void> {
@@ -31,6 +34,26 @@ export function isProfileNameInUse(name: string): boolean {
 
 export function isProfileHomeInUse(codexHome: string): boolean {
   return getAvailableProfiles().some((profile) => pathsEqual(profile.codexHome, codexHome));
+}
+
+function deduplicateProfiles(profiles: readonly CodexProfile[]): readonly CodexProfile[] {
+  const result: CodexProfile[] = [];
+
+  for (const profile of profiles) {
+    if (
+      result.some(
+        (existing) =>
+          existing.id.toLocaleLowerCase() === profile.id.toLocaleLowerCase() ||
+          pathsEqual(existing.codexHome, profile.codexHome),
+      )
+    ) {
+      continue;
+    }
+
+    result.push(profile);
+  }
+
+  return result;
 }
 
 function isCodexProfile(value: unknown): value is CodexProfile {
