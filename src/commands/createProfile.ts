@@ -6,6 +6,7 @@ import {
   isProfileHomeInUse,
   isProfileNameInUse,
 } from '../configuration/configuration';
+import type { Logger } from '../logging/logger';
 import type { ActiveProfileStore } from '../profiles/activeProfileStore';
 import { createUniqueProfileId, resolveProfilePath, suggestProfileHome } from '../profiles/profilePaths';
 import type { ProfileStatusBar } from '../status/profileStatusBar';
@@ -13,6 +14,7 @@ import type { ProfileStatusBar } from '../status/profileStatusBar';
 export async function createProfile(
   store: ActiveProfileStore,
   statusBar: ProfileStatusBar,
+  logger: Logger,
 ): Promise<void> {
   const nameInput = await vscode.window.showInputBox({
     title: 'Create Codex Profile',
@@ -56,8 +58,11 @@ export async function createProfile(
     if (choice !== 'Use Existing Directory') {
       return;
     }
+
+    logger.warn(`Profile ${name} is using existing directory ${codexHome}.`);
   } else {
     await fs.mkdir(codexHome, { recursive: true });
+    logger.info(`Created profile directory ${codexHome}.`);
   }
 
   const profile = {
@@ -69,6 +74,7 @@ export async function createProfile(
   await addConfiguredProfile(profile);
   store.set(profile);
   statusBar.refresh();
+  logger.info(`Created profile ${profile.name} (${profile.id}) at ${profile.codexHome}.`);
 
   await vscode.window.showInformationMessage(
     `Created Codex profile “${profile.name}” at ${profile.codexHome}.`,
