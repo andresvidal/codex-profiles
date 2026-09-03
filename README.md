@@ -28,6 +28,18 @@ Use **Codex Profiles: Create Profile** to add another profile. The extension ask
 
 Custom profile directories are user data. They remain on disk if the extension is disabled or uninstalled.
 
+## Launching Codex
+
+Use **Codex Profiles: Launch Codex** to start a Codex CLI session for the profile currently selected in that VS Code window.
+
+The extension creates a new terminal named after the profile, sets that terminal's `CODEX_HOME` to the profile home, and runs the normal `codex` command. The terminal starts in the current workspace when one is open.
+
+Switching profiles affects only future launches. An already-running Codex terminal keeps the environment it received when it was created, so multiple terminals can remain open with different profiles at the same time.
+
+If a custom profile has not authenticated yet, authentication remains part of Codex's normal CLI flow inside that isolated `CODEX_HOME`. Codex Profiles does not inspect or manipulate authentication files.
+
+The `codex` CLI must be available from the user's terminal environment.
+
 ## Roadmap
 
 ### Phase 1 — Foundation
@@ -69,6 +81,7 @@ Profiles rely on supported Codex isolation mechanisms such as separate `CODEX_HO
 
 ```bash
 npm install
+npm run ci
 npm run compile
 ```
 
