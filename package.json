@@ -11,7 +11,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "*"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -52,7 +52,7 @@
                 "type": "string",
                 "enum": ["shared", "isolated"],
                 "default": "shared",
-                "description": "Whether this account receives the Default profile's Codex config.toml before launch or keeps its own independent Codex configuration."
+                "description": "Whether this account inherits the Default profile's Codex config.toml until customized or keeps independent Codex configuration."
               }
             },
             "additionalProperties": false
