@@ -8,6 +8,7 @@ import {
 } from '../configuration/configuration';
 import type { Logger } from '../logging/logger';
 import type { ActiveProfileStore } from '../profiles/activeProfileStore';
+import type { CodexProfile, CodexProfileConfigMode } from '../profiles/profile';
 import { createUniqueProfileId, resolveProfilePath, suggestProfileHome } from '../profiles/profilePaths';
 import type { ProfileStatusBar } from '../status/profileStatusBar';
 
@@ -32,7 +33,7 @@ export async function createProfile(
   const suggestedHome = suggestProfileHome(name);
   const homeInput = await vscode.window.showInputBox({
     title: `Create Codex Profile: ${name}`,
-    prompt: 'Codex home directory',
+    prompt: 'Codex account home directory',
     value: suggestedHome,
     ignoreFocusOut: true,
     validateInput: (value) => validateProfileHome(value),
@@ -48,9 +49,10 @@ export async function createProfile(
     return;
   }
 
+  let configMode: CodexProfileConfigMode = 'shared';
   if (await pathExists(codexHome)) {
     const choice = await vscode.window.showWarningMessage(
-      `The directory ${codexHome} already exists. Codex Profiles will not inspect, modify, or delete its existing contents.`,
+      `The directory ${codexHome} already exists. Codex Profiles will not inspect, replace, or delete its existing authentication or configuration data.`,
       { modal: true },
       'Use Existing Directory',
     );
@@ -59,25 +61,30 @@ export async function createProfile(
       return;
     }
 
-    logger.warn(`Profile ${name} is using existing directory ${codexHome}.`);
+    configMode = 'isolated';
+    logger.warn(`Profile ${name} is using existing directory ${codexHome} with isolated Codex configuration.`);
   } else {
     await fs.mkdir(codexHome, { recursive: true });
     logger.info(`Created profile directory ${codexHome}.`);
   }
 
-  const profile = {
+  const profile: CodexProfile = {
     id: createUniqueProfileId(name, getAvailableProfiles()),
     name,
     codexHome,
+    configMode,
   };
 
   await addConfiguredProfile(profile);
   store.set(profile);
   statusBar.refresh();
-  logger.info(`Created profile ${profile.name} (${profile.id}) at ${profile.codexHome}.`);
+  logger.info(`Created profile ${profile.name} (${profile.id}) at ${profile.codexHome}; config=${configMode}.`);
 
+  const configDescription = configMode === 'shared'
+    ? 'It will use the Default profile’s Codex configuration while keeping account state isolated.'
+    : 'Its existing Codex configuration will remain isolated.';
   await vscode.window.showInformationMessage(
-    `Created Codex profile “${profile.name}” at ${profile.codexHome}.`,
+    `Created Codex profile “${profile.name}” at ${profile.codexHome}. ${configDescription}`,
   );
 }
 
