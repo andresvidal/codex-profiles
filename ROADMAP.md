@@ -60,16 +60,19 @@ Goal: let the same repository be open in normal VS Code windows while each Codex
 
 Deliverables:
 
-- [x] Identify a viable pre-activation binding seam: set the selected `CODEX_HOME` before `openai.chatgpt` activates and spawns app-server
-- [x] Experimental `CodexIdeRuntimeAdapter` with tests for pre-activation binding and already-active runtime refusal
-- [x] Keep VS Code settings, extensions, themes, keybindings, and extension state shared
-- [x] Refuse misleading switches when the official runtime is already active with a different home
-- [ ] Validate the pre-activation seam against current official Codex IDE builds on Windows, macOS, and Linux
-- [ ] Validate two simultaneous normal VS Code windows with different homes against the same repository
-- [ ] Implement a reload-safe per-window handoff that does not collide when two windows open the same repository
-- [ ] Define and validate runtime restart/reload behavior when changing the active account after Codex activation
-- [ ] Preserve the Codex-owned authentication boundary; do not solve IDE binding with auth-file swapping
-- [ ] Cross-window and cross-platform integration tests
+- [x] Identify the Codex runtime seam: set the selected `CODEX_HOME` before `openai.chatgpt` activates and spawns app-server
+- [x] Experimental `CodexIdeRuntimeAdapter` with tests for pre-activation binding and already-active runtime detection
+- [x] Controlled reload transaction that closes Codex activation surfaces before reload and restores them only after binding the target home
+- [x] Native-window handoff identity derived from `ExtensionContext.logUri`, avoiding workspace-path and `workspaceState` collisions
+- [x] Immutable Default-home resolution so runtime environment rebinding cannot redefine the Default profile
+- [x] Unit tests showing two native window identities can retain different profiles while referencing the same workspace
+- [x] Keep VS Code user settings, extensions, themes, keybindings, workspace settings, and physical repository shared
+- [x] Preserve the Codex-owned authentication boundary; do not solve IDE binding with auth-file swapping
+- [ ] Validate `context.logUri` stability across Reload Window on current stable VS Code for Windows, macOS, and Linux
+- [ ] Validate the controlled reload seam against current official Codex IDE builds on Windows, macOS, and Linux
+- [ ] Validate two simultaneous normal VS Code windows with different homes against the exact same workspace/repository
+- [ ] Verify restored `openai-codex` conversation editors and Codex sidebar behavior after account switching
+- [ ] Cross-window and cross-platform Extension Host integration tests
 - [ ] Remote SSH / WSL / Dev Container behavior documented
 
 Exit criteria:
