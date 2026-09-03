@@ -1,74 +1,75 @@
 # Codex Profiles
 
-Codex Profiles is a VS Code extension for working with multiple OpenAI Codex profiles cleanly.
+Codex Profiles is a VS Code extension for working with multiple OpenAI Codex accounts without changing the rest of your development environment.
 
-The goal is to let the same repository be open in separate VS Code windows, with each window starting with a different Codex account/profile environment.
+> Switch my Codex account, not my development environment.
 
 ## Principles
 
-- No token swapping or authentication hacks.
-- Prefer isolated `CODEX_HOME` directories for profiles.
-- Treat each VS Code window as an independent profile/session boundary.
-- Keep authentication owned by Codex.
-- Preserve the user's existing Codex home by default.
+- Keep the user's existing VS Code profile, settings, extensions, themes, keybindings, and workspace unchanged.
+- Preserve the user's existing Codex home as the built-in `Default` profile.
+- Isolate named Codex accounts with separate `CODEX_HOME` directories.
+- Share the Default Codex configuration with newly created accounts by default.
+- Never copy or interpret authentication tokens between account homes.
 - Never delete Codex profile data during extension uninstall.
-- Use supported VS Code and Codex mechanisms instead of undocumented internals.
-- Use TypeScript, strict typing, small modules, tests, and documented trade-offs.
+- Prefer supported VS Code and Codex mechanisms over undocumented internals.
 
-## Profiles
+## Default profile
 
 Codex Profiles always exposes an implicit `Default` profile.
 
 - If `CODEX_HOME` is already set, `Default` uses that value.
-- Otherwise `Default` resolves to the normal user Codex home at `~/.codex`.
-- Installing, disabling, or uninstalling the extension does not move, rewrite, or delete that directory.
+- Otherwise `Default` resolves to `~/.codex`.
+- Installing, disabling, or uninstalling Codex Profiles does not migrate, rewrite, or delete the Default home.
 
-Use **Codex Profiles: Create Profile** to add another profile. The extension asks for a profile name, proposes an isolated home such as `~/.codex-profiles/work`, and lets you edit the path before creating it. Existing directories require explicit confirmation before use.
+Installing the extension should therefore be seamless for an existing Codex user.
 
-Custom profile directories are user data. They remain on disk if the extension is disabled or uninstalled.
+## Named account profiles
+
+Use **Codex Profiles: Create Profile** to add another account such as `Work`.
+
+A newly created profile receives its own account home, for example:
+
+```text
+Default  -> ~/.codex
+Work     -> ~/.codex-profiles/work
+```
+
+Account/session state remains separate because Codex runs with the profile-specific `CODEX_HOME`.
+
+### Shared Codex configuration
+
+New profile homes use `shared` configuration mode by default. Before launching Codex for a shared profile, Codex Profiles projects the Default profile's `config.toml` into the named account home.
+
+This means normal Codex preferences such as model, MCP, approval, sandbox, and other user-level configuration can remain consistent while account state stays isolated.
+
+Codex Profiles does not copy `auth.json`, token values, credential stores, session databases, or other account data as part of this projection.
+
+A profile can instead use `configMode: "isolated"` to maintain its own Codex configuration. Existing directories that are explicitly reused default to isolated configuration so existing contents are not unexpectedly overwritten.
+
+Project-level Codex configuration in the repository remains shared naturally because both accounts work against the same workspace.
 
 ## Launch Codex CLI
 
-Use **Codex Profiles: Launch Codex CLI** to start a Codex CLI session for the profile currently selected in that VS Code window.
+Use **Codex Profiles: Launch Codex CLI** to start a Codex CLI session for the account selected in the current VS Code window.
 
-The extension creates a new terminal named after the profile, sets that terminal's `CODEX_HOME` to the profile home, and runs the normal `codex` command. Switching profiles affects only future CLI launches; existing terminals keep the environment they were created with.
+Before launch, shared Codex configuration is synchronized from Default when applicable. The terminal then receives only the profile-specific `CODEX_HOME` override and runs the normal `codex` command.
 
-This command isolates the Codex CLI only. It does not rebind an already-running Codex IDE extension process.
+Existing Codex terminals keep the environment they were created with, so CLI sessions for different accounts can run concurrently.
 
-## Open Workspace With Profile
+## Codex IDE extension status
 
-Use **Codex Profiles: Open Workspace With Profile…** to open the current local repository or saved workspace in another VS Code instance under a selected Codex profile.
+The official Codex IDE extension is a separate runtime from the CLI. Codex Profiles does not create a separate VS Code user-data directory just to change Codex accounts.
 
-The new instance is launched with:
+The previous `Open Workspace With Profile…` implementation used per-profile VS Code user-data directories. That design has been removed because it also separated editor settings and extension state.
 
-- the selected profile's `CODEX_HOME` in the VS Code process environment before extensions activate;
-- a stable per-profile VS Code user-data directory under `~/.codex-profiles/vscode-data/<profile-id>` by default;
-- the normal VS Code extensions directory shared through the supported `--extensions-dir` option;
-- the selected profile and current profile catalog handed to the new Codex Profiles extension process;
-- VS Code IPC-routing environment variables removed so the launch cannot silently reuse the current instance.
-
-VS Code documents `--user-data-dir` as the supported way to run instances with separate environments. A consequence is that VS Code settings, preferences, UI state, and extension state are isolated per Codex profile. Installed extension files are shared, but user settings are not automatically copied between profile instances.
-
-The same repository working tree is opened directly; Codex Profiles does not duplicate or copy the repository. Two windows can therefore edit the same files concurrently.
-
-### Workspace launch settings
-
-- `codexProfiles.vscodeCliPath`: VS Code CLI executable. Defaults to `code`. On macOS, set an absolute path if the shell command has not been installed.
-- `codexProfiles.vscodeUserDataRoot`: root for per-profile VS Code user data. Defaults to `~/.codex-profiles/vscode-data`.
-- `codexProfiles.vscodeExtensionsDir`: optional shared extensions directory. Empty uses `VSCODE_EXTENSIONS` when set, otherwise the normal `~/.vscode/extensions` location (`~/.vscode-insiders/extensions` for Insiders).
-
-Current workspace-launch limitations:
-
-- local VS Code windows only; Remote SSH, WSL, and Dev Container windows are not yet supported;
-- multi-root workspaces must be saved before they can be reopened with another profile;
-- VS Code Portable Mode can override `--user-data-dir` and `--extensions-dir` and is not yet supported;
-- real end-to-end validation with multiple simultaneously signed-in Codex IDE accounts is still required against the current Codex extension release.
+The remaining product goal is a narrow per-window binding between the selected Codex account home and the official Codex app-server/runtime while leaving the rest of VS Code untouched. Until a supported runtime hook is available or validated, true simultaneous per-window IDE accounts remain incomplete.
 
 ## Authentication boundary
 
-Codex Profiles does not copy, modify, inspect, manufacture, or swap authentication tokens or authentication files.
+Authentication remains owned by Codex inside each account home. Codex Profiles does not manufacture tokens or implement OAuth/token refresh itself.
 
-Profiles rely on supported Codex isolation through separate `CODEX_HOME` directories. Authentication remains owned by Codex. An unauthenticated profile should go through Codex's normal sign-in flow inside that profile home.
+The architecture intentionally keeps the door open to secure opaque credential-state handling if a future IDE integration requires it, but the current account-home flow does not copy authentication material between profiles.
 
 ## Roadmap
 
