@@ -21,8 +21,10 @@ export async function prepareProfileCodexConfig(
 
   try {
     const sourceContent = await fs.readFile(source);
-    await writeIfChanged(destination, sourceContent);
-    logger?.info(`Projected shared Codex config into ${destination}.`);
+    const changed = await writeIfChanged(destination, sourceContent);
+    if (changed) {
+      logger?.info(`Projected shared Codex config into ${destination}.`);
+    }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       await removeIfExists(destination);
@@ -32,11 +34,11 @@ export async function prepareProfileCodexConfig(
   }
 }
 
-async function writeIfChanged(destination: string, content: Buffer): Promise<void> {
+async function writeIfChanged(destination: string, content: Buffer): Promise<boolean> {
   try {
     const existing = await fs.readFile(destination);
     if (existing.equals(content)) {
-      return;
+      return false;
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
@@ -47,7 +49,16 @@ async function writeIfChanged(destination: string, content: Buffer): Promise<voi
   const temporary = `${destination}.codex-profiles.tmp.${process.pid}.${Date.now()}`;
   try {
     await fs.writeFile(temporary, content, { mode: 0o600 });
-    await fs.rename(temporary, destination);
+    try {
+      await fs.rename(temporary, destination);
+    } catch (error) {
+      if (process.platform !== 'win32') {
+        throw error;
+      }
+      await fs.copyFile(temporary, destination);
+      await fs.unlink(temporary);
+    }
+    return true;
   } catch (error) {
     try {
       await fs.unlink(temporary);
