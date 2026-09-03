@@ -27,8 +27,9 @@ export class CodexIdeReloadCoordinator {
       await vscode.window.tabGroups.close(codexTabs, true);
     }
 
-    // Closing the auxiliary bar prevents a restored Codex sidebar from causing
-    // the official extension to activate before Codex Profiles can set CODEX_HOME.
+    // The official Codex extension is observed to activate from its chat session
+    // or view. Closing both restored surfaces before reload removes those triggers
+    // until Codex Profiles has restored the selected CODEX_HOME.
     await vscode.commands.executeCommand('workbench.action.closeAuxiliaryBar');
 
     this.logger.info(
@@ -45,10 +46,6 @@ export class CodexIdeReloadCoordinator {
 
     // Clear first so a failed restore cannot create a reload/restore loop.
     await this.windowState.clearPendingRestore();
-
-    if (pending.editorUris.length === 0) {
-      return;
-    }
 
     try {
       await vscode.commands.executeCommand(OPEN_CODEX_SIDEBAR_COMMAND);
