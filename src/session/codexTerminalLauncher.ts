@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import type { Logger } from '../logging/logger';
-import type { CodexProfile } from '../profiles/profile';
 import type { ConfigProjectionStateStore } from '../profiles/configProjectionState';
+import type { CodexProfile } from '../profiles/profile';
 import { prepareProfileCodexConfig } from '../profiles/sharedCodexConfig';
-import { createCodexSessionEnvironment } from './sessionEnvironment';
+import { createCodexTerminalLaunchPlan } from './codexTerminalLaunchPlan';
 
 export class CodexTerminalLauncher {
   constructor(
@@ -14,18 +14,18 @@ export class CodexTerminalLauncher {
   async launch(profile: CodexProfile): Promise<vscode.Terminal> {
     await prepareProfileCodexConfig(profile, this.configProjectionState, this.logger);
 
-    const environment = createCodexSessionEnvironment(profile);
+    const plan = createCodexTerminalLaunchPlan(profile);
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri;
     const terminal = vscode.window.createTerminal({
-      name: `Codex (${profile.name})`,
+      name: plan.name,
       cwd,
-      env: environment,
+      env: { ...plan.env },
       isTransient: false,
     });
 
-    this.logger.info(`Launching Codex terminal for ${profile.name} with CODEX_HOME=${environment.CODEX_HOME}.`);
+    this.logger.info(`Launching Codex terminal for ${profile.name} with CODEX_HOME=${plan.env.CODEX_HOME}.`);
     terminal.show(true);
-    terminal.sendText('codex', true);
+    terminal.sendText(plan.command, true);
     return terminal;
   }
 }
