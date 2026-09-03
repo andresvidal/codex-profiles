@@ -41,7 +41,9 @@ Account/session state remains separate because Codex runs with the profile-speci
 
 New profile homes use `shared` configuration mode by default. Before launching Codex for a shared profile, Codex Profiles projects the Default profile's `config.toml` into the named account home.
 
-This means normal Codex preferences such as model, MCP, approval, sandbox, and other user-level configuration can remain consistent while account state stays isolated.
+A useful mental model is **inherit Default until customized**. A new account starts with the same user-level Codex preferences as Default. While its projected `config.toml` remains unchanged, later Default changes can continue to flow into it. Once that account changes its own `config.toml`, the profile is considered diverged and Codex Profiles preserves the account-specific version rather than overwriting it.
+
+This means normal Codex preferences such as model, MCP, approval, sandbox, and other user-level configuration can start consistent while still allowing an account to specialize later.
 
 Projection ownership is conservative. Codex Profiles stores only a SHA-256 hash of the last configuration it projected in extension-owned global state. A profile `config.toml` is automatically updated or removed only while its current contents still match that recorded projection. If the profile configuration diverges, Codex Profiles preserves it and stops overwriting it.
 
@@ -50,6 +52,65 @@ Codex Profiles never includes `auth.json`, token values, credential stores, sess
 A profile can instead use `configMode: "isolated"` to maintain its own Codex configuration. Existing directories that are explicitly reused default to isolated configuration so existing contents are not unexpectedly overwritten.
 
 Project-level Codex configuration in the repository remains shared naturally because both accounts work against the same workspace.
+
+### How settings behave when switching accounts
+
+Consider an existing Codex user who installs Codex Profiles and then creates a `Work` account.
+
+Initially:
+
+```text
+Default
+  account home: ~/.codex
+  user Codex config: ~/.codex/config.toml
+
+Work
+  account home: ~/.codex-profiles/work
+  user Codex config: projected from Default
+
+Repository
+  .codex/config.toml       shared by both accounts
+  .vscode/settings.json   shared by both accounts
+```
+
+If `Work` changes only repository/workspace configuration, such as `.codex/config.toml` or `.vscode/settings.json`, the same physical repository file changes, so `Default` sees that change too.
+
+If `Work` changes its user-level Codex configuration under `~/.codex-profiles/work/config.toml`, that profile diverges from Default. From then on, Codex Profiles preserves the Work-specific configuration instead of replacing it with later Default changes.
+
+For example:
+
+```text
+1. Default starts with:
+   model = A
+   approval = on-request
+
+2. Create Work:
+   Work inherits the same values.
+
+3. Work changes its user-level approval setting:
+   Default -> approval = on-request
+   Work    -> approval = never
+
+4. Switch to Default and change another user-level setting:
+   Default -> personality = concise
+   Work    -> remains on its diverged configuration
+
+5. Switch back to Work and customize again:
+   Default and Work now intentionally have different user-level Codex preferences,
+   while repository and VS Code workspace settings remain shared.
+```
+
+The resulting behavior is:
+
+| Setting layer | Default vs Work |
+| --- | --- |
+| VS Code profile, extensions, theme, keybindings | Shared |
+| `.vscode/settings.json` in the repository | Shared |
+| `.codex/config.toml` in the repository | Shared |
+| Codex account/authentication | Isolated per `CODEX_HOME` |
+| `$CODEX_HOME/config.toml` | Inherited from Default until the named account customizes it, then preserved independently |
+
+This is a core product distinction: account switching does not clone the editor environment, and account-specific Codex preferences do not require making the entire workspace profile-specific.
 
 ## Launch Codex CLI
 
