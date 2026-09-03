@@ -10,7 +10,7 @@ Codex Profiles is a VS Code extension for working with multiple OpenAI Codex acc
 - Preserve the user's existing Codex home as the built-in `Default` profile.
 - Isolate named Codex accounts with separate `CODEX_HOME` directories.
 - Share the Default Codex configuration with newly created accounts by default.
-- Never copy or interpret authentication tokens between account homes.
+- Never read, copy, write, snapshot, or interpret Codex authentication files or tokens.
 - Never delete Codex profile data during extension uninstall.
 - Prefer supported VS Code and Codex mechanisms over undocumented internals.
 
@@ -35,7 +35,7 @@ Default  -> ~/.codex
 Work     -> ~/.codex-profiles/work
 ```
 
-Account/session state remains separate because Codex runs with the profile-specific `CODEX_HOME`.
+Account/session state remains separate because Codex runs with the profile-specific `CODEX_HOME`. Authentication is created and maintained by Codex through its normal login and refresh flows inside that home.
 
 ### Shared Codex configuration
 
@@ -43,7 +43,9 @@ New profile homes use `shared` configuration mode by default. Before launching C
 
 This means normal Codex preferences such as model, MCP, approval, sandbox, and other user-level configuration can remain consistent while account state stays isolated.
 
-Codex Profiles does not copy `auth.json`, token values, credential stores, session databases, or other account data as part of this projection.
+Projection ownership is conservative. Codex Profiles stores only a SHA-256 hash of the last configuration it projected in extension-owned global state. A profile `config.toml` is automatically updated or removed only while its current contents still match that recorded projection. If the profile configuration diverges, Codex Profiles preserves it and stops overwriting it.
+
+Codex Profiles never includes `auth.json`, token values, credential stores, session databases, or other account data in configuration projection or projection metadata.
 
 A profile can instead use `configMode: "isolated"` to maintain its own Codex configuration. Existing directories that are explicitly reused default to isolated configuration so existing contents are not unexpectedly overwritten.
 
@@ -53,7 +55,7 @@ Project-level Codex configuration in the repository remains shared naturally bec
 
 Use **Codex Profiles: Launch Codex CLI** to start a Codex CLI session for the account selected in the current VS Code window.
 
-Before launch, shared Codex configuration is synchronized from Default when applicable. The terminal then receives only the profile-specific `CODEX_HOME` override and runs the normal `codex` command.
+Before launch, shared Codex configuration is synchronized from Default when it is still extension-managed. The terminal then receives only the profile-specific `CODEX_HOME` override and runs the normal `codex` command.
 
 Existing Codex terminals keep the environment they were created with, so CLI sessions for different accounts can run concurrently.
 
@@ -67,9 +69,11 @@ The remaining product goal is a narrow per-window binding between the selected C
 
 ## Authentication boundary
 
-Authentication remains owned by Codex inside each account home. Codex Profiles does not manufacture tokens or implement OAuth/token refresh itself.
+Authentication remains entirely owned by Codex inside each account home.
 
-The architecture intentionally keeps the door open to secure opaque credential-state handling if a future IDE integration requires it, but the current account-home flow does not copy authentication material between profiles.
+Codex Profiles does not read or write `auth.json`, does not store credential snapshots in VS Code SecretStorage, does not implement OAuth or token refresh, and does not swap credentials between profiles. A named profile is authenticated by running Codex normally with that profile's `CODEX_HOME` and completing Codex's own sign-in flow.
+
+This is a deliberate v1 architectural boundary, not an implementation gap. Changing it requires an explicit architecture decision and corresponding security review.
 
 ## Roadmap
 
