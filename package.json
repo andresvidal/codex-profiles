@@ -29,8 +29,12 @@
         "title": "Codex Profiles: Show Active Profile"
       },
       {
-        "command": "codexProfiles.launchCodex",
-        "title": "Codex Profiles: Launch Codex"
+        "command": "codexProfiles.launchCodexCli",
+        "title": "Codex Profiles: Launch Codex CLI"
+      },
+      {
+        "command": "codexProfiles.openWorkspaceWithProfile",
+        "title": "Codex Profiles: Open Workspace With Profile…"
       }
     ],
     "configuration": {
@@ -50,6 +54,21 @@
             },
             "additionalProperties": false
           }
+        },
+        "codexProfiles.vscodeCliPath": {
+          "type": "string",
+          "default": "code",
+          "description": "VS Code CLI executable used to open isolated profile windows. Set an absolute path if the 'code' command is not available on PATH."
+        },
+        "codexProfiles.vscodeUserDataRoot": {
+          "type": "string",
+          "default": "~/.codex-profiles/vscode-data",
+          "description": "Root directory for per-profile VS Code user-data directories used to isolate window environments."
+        },
+        "codexProfiles.vscodeExtensionsDir": {
+          "type": "string",
+          "default": "",
+          "description": "Optional shared VS Code extensions directory for isolated profile windows. Empty uses VSCODE_EXTENSIONS or the normal VS Code extensions directory."
         }
       }
     }
@@ -61,7 +80,11 @@
     "test": "tsx --test test/**/*.test.ts",
     "ci": "npm run check && npm test"
   },
+  "dependencies": {
+    "cross-spawn": "^7.0.6"
+  },
   "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
     "@types/node": "^22.10.0",
     "@types/vscode": "^1.104.0",
     "tsx": "^4.19.2",
