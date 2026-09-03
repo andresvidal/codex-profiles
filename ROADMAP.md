@@ -21,9 +21,9 @@ Deliverables:
 - [x] Show Active Profile command
 - [x] Architecture documentation
 - [x] Authentication-boundary ADR
-- [ ] Logging/output channel
-- [ ] Unit tests
-- [ ] CI for type checking and tests
+- [x] Logging/output channel
+- [x] Unit tests for profile path and Default profile resolution
+- [x] CI for type checking, tests, and compilation
 
 Exit criteria:
 
