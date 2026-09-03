@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
-import { getDefaultProfile } from '../profiles/defaultProfile';
-import type { CodexProfile } from '../profiles/profile';
+import { getDefaultProfile, DEFAULT_PROFILE_ID } from '../profiles/defaultProfile';
+import type { CodexProfile, CodexProfileConfigMode } from '../profiles/profile';
 import { pathsEqual } from '../profiles/profilePaths';
-import { readProfileCatalog } from '../workspace/profileHandoff';
 
 const SECTION = 'codexProfiles';
 const PROFILES_KEY = 'profiles';
@@ -15,16 +14,15 @@ export function getConfiguredProfiles(): readonly CodexProfile[] {
 }
 
 export function getAvailableProfiles(): readonly CodexProfile[] {
-  const handedOffProfiles = readProfileCatalog();
-  const baseline = handedOffProfiles.length > 0 ? handedOffProfiles : [getDefaultProfile()];
-  return deduplicateProfiles([...baseline, ...getConfiguredProfiles()]);
+  return deduplicateProfiles([getDefaultProfile(), ...getConfiguredProfiles()]);
 }
 
 export async function addConfiguredProfile(profile: CodexProfile): Promise<void> {
   const configuration = vscode.workspace.getConfiguration(SECTION);
-  const profiles = getConfiguredProfiles();
+  const inspection = configuration.inspect<readonly CodexProfile[]>(PROFILES_KEY);
+  const globalProfiles = (inspection?.globalValue ?? []).filter(isCodexProfile);
 
-  await configuration.update(PROFILES_KEY, [...profiles, profile], vscode.ConfigurationTarget.Global);
+  await configuration.update(PROFILES_KEY, [...globalProfiles, profile], vscode.ConfigurationTarget.Global);
 }
 
 export function isProfileNameInUse(name: string): boolean {
@@ -40,6 +38,10 @@ function deduplicateProfiles(profiles: readonly CodexProfile[]): readonly CodexP
   const result: CodexProfile[] = [];
 
   for (const profile of profiles) {
+    if (profile.id.toLocaleLowerCase() === DEFAULT_PROFILE_ID && profile.name !== 'Default') {
+      continue;
+    }
+
     if (
       result.some(
         (existing) =>
@@ -62,9 +64,12 @@ function isCodexProfile(value: unknown): value is CodexProfile {
   }
 
   const candidate = value as Partial<CodexProfile>;
+  const configMode = candidate.configMode as CodexProfileConfigMode | undefined;
   return (
     typeof candidate.id === 'string' && candidate.id.trim().length > 0 &&
+    candidate.id.toLocaleLowerCase() !== DEFAULT_PROFILE_ID &&
     typeof candidate.name === 'string' && candidate.name.trim().length > 0 &&
-    typeof candidate.codexHome === 'string' && candidate.codexHome.trim().length > 0
+    typeof candidate.codexHome === 'string' && candidate.codexHome.trim().length > 0 &&
+    (configMode === undefined || configMode === 'shared' || configMode === 'isolated')
   );
 }
