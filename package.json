@@ -21,6 +21,10 @@
         "title": "Codex Profiles: Select Profile"
       },
       {
+        "command": "codexProfiles.createProfile",
+        "title": "Codex Profiles: Create Profile"
+      },
+      {
         "command": "codexProfiles.showActiveProfile",
         "title": "Codex Profiles: Show Active Profile"
       }
@@ -31,7 +35,7 @@
         "codexProfiles.profiles": {
           "type": "array",
           "default": [],
-          "description": "Configured Codex profiles. Authentication remains owned by Codex inside each CODEX_HOME.",
+          "description": "Custom Codex profiles. The built-in Default profile is resolved from CODEX_HOME or the normal ~/.codex home and is not stored here. Authentication remains owned by Codex inside each CODEX_HOME.",
           "items": {
             "type": "object",
             "required": ["id", "name", "codexHome"],
