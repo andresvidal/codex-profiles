@@ -25,6 +25,14 @@ export async function prepareProfileCodexConfig(
 
   const previousProjection = await stateStore.read(profile);
   const existing = await readIfExists(destination);
+
+  if (existing && !previousProjection) {
+    logger?.warn(
+      `Shared Codex config for ${profile.name} already exists without projection metadata; preserving ${destination}.`,
+    );
+    return 'diverged';
+  }
+
   if (existing && previousProjection && sha256(existing) !== previousProjection) {
     logger?.warn(
       `Shared Codex config for ${profile.name} diverged from the last projection; preserving ${destination}.`,
@@ -46,15 +54,7 @@ export async function prepareProfileCodexConfig(
 
   const sourceHash = sha256(sourceContent);
   if (existing?.equals(sourceContent)) {
-    await stateStore.write(profile, sourceHash);
     return 'unchanged';
-  }
-
-  if (existing && !previousProjection) {
-    logger?.warn(
-      `Shared Codex config for ${profile.name} already exists without projection metadata; preserving ${destination}.`,
-    );
-    return 'diverged';
   }
 
   await writeFileAtomic(destination, sourceContent);
