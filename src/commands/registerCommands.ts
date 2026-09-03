@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import { getAvailableProfiles } from '../configuration/configuration';
+import type { CodexIdeReloadCoordinator } from '../ide/codexIdeReloadCoordinator';
 import type { CodexIdeRuntimeAdapter } from '../ide/codexIdeRuntimeAdapter';
 import type { Logger } from '../logging/logger';
 import type { ActiveProfileStore } from '../profiles/activeProfileStore';
 import { getProfileConfigMode } from '../profiles/profile';
+import type { WindowProfileState } from '../profiles/windowProfileState';
 import type { CodexTerminalLauncher } from '../session/codexTerminalLauncher';
 import type { ProfileStatusBar } from '../status/profileStatusBar';
 import { createProfile } from './createProfile';
@@ -15,6 +17,8 @@ export function registerCommands(
   logger: Logger,
   cliLauncher: CodexTerminalLauncher,
   ideRuntime: CodexIdeRuntimeAdapter,
+  reloadCoordinator: CodexIdeReloadCoordinator,
+  windowProfileState: WindowProfileState,
 ): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('codexProfiles.selectProfile', async () => {
@@ -35,19 +39,21 @@ export function registerCommands(
         return;
       }
 
-      const bindResult = ideRuntime.bindBeforeActivation(selected.profile);
-      if (bindResult.kind === 'requires-reload') {
-        logger.warn(
-          `Profile ${selected.profile.name} was not selected because the official Codex runtime is already active in this window.`,
-        );
-        await vscode.window.showWarningMessage(
-          `Codex is already running in this window with ${bindResult.currentCodexHome ?? 'the inherited Default home'}. ` +
-          `Switching to “${selected.profile.name}” requires a reload-safe per-window handoff that is not enabled yet. ` +
-          'The current Codex account was left unchanged.',
-        );
+      const current = store.get();
+      if (selected.profile.id.toLocaleLowerCase() === current.id.toLocaleLowerCase()) {
         return;
       }
 
+      const bindResult = ideRuntime.bindBeforeActivation(selected.profile);
+      if (bindResult.kind === 'requires-reload') {
+        logger.info(
+          `Switching this window from ${current.name} to ${selected.profile.name} through a controlled Codex IDE reload.`,
+        );
+        await reloadCoordinator.switchWithReload(selected.profile);
+        return;
+      }
+
+      await windowProfileState.setActiveProfile(selected.profile);
       store.set(selected.profile);
       statusBar.refresh();
       logger.info(`Selected profile ${selected.profile.name} at ${selected.profile.codexHome}.`);
@@ -64,14 +70,17 @@ export function registerCommands(
 
         const bindResult = ideRuntime.bindBeforeActivation(createdProfile);
         if (bindResult.kind === 'requires-reload') {
-          store.set(previousProfile);
-          statusBar.refresh();
-          await vscode.window.showInformationMessage(
-            `Created “${createdProfile.name}”, but Codex is already active in this window, so ${previousProfile.name} remains active here. ` +
-            'Select the new profile in a window before opening Codex, or use Launch Codex CLI with it from a window where it is active.',
+          logger.info(
+            `Created ${createdProfile.name}; switching this window to the new profile through a controlled Codex IDE reload.`,
           );
+          await reloadCoordinator.switchWithReload(createdProfile);
+          return;
         }
+
+        await windowProfileState.setActiveProfile(createdProfile);
       } catch (error) {
+        store.set(previousProfile);
+        statusBar.refresh();
         logger.error('Failed to create profile.', error);
         await vscode.window.showErrorMessage(
           'Failed to create Codex profile. See the Codex Profiles output for details.',
