@@ -20,57 +20,55 @@ Deliverables:
 - [x] Create Profile command
 - [x] Show Active Profile command
 - [x] Architecture documentation
-- [x] Authentication-boundary ADR
 - [x] Logging/output channel
 - [x] Unit tests for profile path and Default profile resolution
-- [x] CI for type checking, tests, and compilation
+- [x] CI on Windows, macOS, and Linux
 
 Exit criteria:
 
-The extension starts each VS Code window on the user's existing Codex home, can create and select isolated custom profiles independently for that window, and never touches authentication material or deletes profile directories as part of the extension lifecycle.
+Installing the extension preserves the user's existing VS Code environment and Default Codex home while allowing isolated named account homes to be defined.
 
-## Phase 2 — Profile switching
+## Phase 2 — Codex account isolation
 
-Goal: launch Codex sessions with explicit profile isolation.
+Goal: switch Codex accounts without switching the user's development environment.
 
 Deliverables:
 
 - [x] Profile-specific `CODEX_HOME` environment builder
 - [x] `Launch Codex CLI` terminal integration
-- [x] Normal Codex authentication flow retained for unauthenticated profiles
-- [ ] Multiple profile support validated during real Codex CLI and IDE sessions
-- [x] Switching applies only to newly launched CLI sessions
-- [x] Unit tests proving environment isolation
+- [x] Normal Codex authentication flow retained for unauthenticated account homes
+- [x] Default Codex profile remains untouched
+- [x] Shared-vs-isolated Codex configuration mode
+- [x] New account homes share Default `config.toml` by default
+- [x] Existing reused homes keep isolated configuration by default
+- [x] Cross-platform tests for shared configuration projection
+- [x] Per-profile VS Code `--user-data-dir` architecture removed
+- [ ] Multiple account support validated during real Codex CLI sessions
 - [ ] VS Code-host integration test for terminal launch options
 
 Exit criteria:
 
-Two profiles can authenticate independently through Codex and launch separate sessions without copying or swapping credential material.
+Two named account homes can authenticate independently and run concurrent Codex CLI sessions while using the same VS Code settings, extensions, workspace, and shared Codex configuration by default.
 
-## Phase 3 — Workspace duplication
+## Phase 3 — Per-window Codex IDE binding
 
-Goal: open the same repository in another VS Code instance with a different Codex profile before the Codex IDE extension initializes.
+Goal: let the same repository be open in normal VS Code windows while each Codex IDE runtime uses a different account, without cloning or switching the VS Code user profile.
 
 Deliverables:
 
-- [x] `Open Workspace With Profile…` command
-- [x] New-instance launch flow using a profile-specific `--user-data-dir`
-- [x] Selected `CODEX_HOME` applied to the child VS Code process before extension activation
-- [x] Explicit active-profile handoff to the new window
-- [x] Profile catalog handoff for isolated windows
-- [x] VS Code IPC/client routing stripped from child launch environment
-- [x] Shared extension installation via supported `--extensions-dir`
-- [x] No process-global or shared-workspace active-profile state
-- [x] Saved multi-root workspace behavior documented
-- [x] Configurable VS Code CLI, user-data root, and extensions directory
-- [x] Cross-platform launch-plan tests and CI on Windows, macOS, and Linux
-- [ ] Real end-to-end validation with two simultaneously signed-in Codex IDE accounts
-- [ ] VS Code-host integration test proving the child extension host receives the selected `CODEX_HOME`
-- [ ] Remote SSH / WSL / Dev Container launch design
+- [ ] Identify and validate a supported Codex IDE/app-server runtime binding for account home selection
+- [ ] Keep VS Code settings, extensions, themes, keybindings, and extension state shared
+- [ ] Bind the selected account to only the Codex runtime in each window
+- [ ] Support two simultaneous windows with different Codex accounts against the same repository
+- [ ] Define runtime restart/reload behavior when changing the active account
+- [ ] Evaluate opaque credential snapshotting only if required by the supported runtime integration
+- [ ] Prevent stale-token/refresh races if credential snapshots become necessary
+- [ ] Cross-window and cross-platform integration tests
+- [ ] Remote SSH / WSL / Dev Container behavior documented
 
 Exit criteria:
 
-The same local repository can be open simultaneously in separate isolated VS Code instances, each starting with a different profile-specific `CODEX_HOME`, and the current Codex IDE extension is validated to honor that environment for independent ChatGPT accounts.
+The same repository can be open simultaneously in two normal VS Code windows with different Codex ChatGPT accounts while the rest of each window uses the user's existing VS Code environment.
 
 ## Phase 4 — Polish
 
@@ -78,11 +76,12 @@ Goal: production readiness and marketplace release.
 
 Deliverables:
 
-- [ ] Shared profile catalog persistence independent of VS Code user-data directories
 - [ ] Profile management UX
 - [ ] Rename/delete flows
+- [ ] Shared/isolated Codex configuration toggle UX
 - [ ] Improved validation and diagnostics
 - [ ] Unit and integration test coverage
+- [ ] Generate lockfile and migrate CI to `npm ci`
 - [ ] CI/release workflow
 - [ ] Marketplace icon and screenshots
 - [ ] Marketplace metadata
