@@ -13,8 +13,8 @@ export async function prepareProfileCodexConfig(
   profile: CodexProfile,
   stateStore: ConfigProjectionStateStore,
   logger?: Logger,
+  defaultProfile: CodexProfile = getDefaultProfile(),
 ): Promise<SharedConfigPreparationResult> {
-  const defaultProfile = getDefaultProfile();
   if (profile.id === defaultProfile.id || getProfileConfigMode(profile) === 'isolated') {
     return 'unchanged';
   }
