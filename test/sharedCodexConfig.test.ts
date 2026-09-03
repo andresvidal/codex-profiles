@@ -155,7 +155,7 @@ test('untracked profile config is preserved when Default has no config', async (
 
     const result = await prepareProfileCodexConfig(workProfile(workHome), stateStore);
 
-    assert.equal(result, 'unchanged');
+    assert.equal(result, 'diverged');
     assert.equal(await fs.readFile(destination, 'utf8'), 'user_owned = true\n');
   });
 });
