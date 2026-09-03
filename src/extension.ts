@@ -5,17 +5,32 @@ import { ActiveProfileStore } from './profiles/activeProfileStore';
 import { getDefaultProfile } from './profiles/defaultProfile';
 import { CodexTerminalLauncher } from './session/codexTerminalLauncher';
 import { ProfileStatusBar } from './status/profileStatusBar';
+import { readProfileHandoff } from './workspace/profileHandoff';
+import { WorkspaceLauncher } from './workspace/workspaceLauncher';
 
 export function activate(context: vscode.ExtensionContext): void {
   const logger = new Logger();
-  const defaultProfile = getDefaultProfile();
-  const activeProfileStore = new ActiveProfileStore(defaultProfile);
+  const initialProfile = readProfileHandoff() ?? getDefaultProfile();
+  const activeProfileStore = new ActiveProfileStore(initialProfile);
   const statusBar = new ProfileStatusBar(activeProfileStore);
-  const launcher = new CodexTerminalLauncher(logger);
+  const cliLauncher = new CodexTerminalLauncher(logger);
+  const workspaceLauncher = new WorkspaceLauncher(
+    logger,
+    context.extensionMode === vscode.ExtensionMode.Development
+      ? context.extensionUri.fsPath
+      : undefined,
+  );
 
   context.subscriptions.push(logger, statusBar);
-  logger.info(`Activated with Default profile at ${defaultProfile.codexHome}.`);
-  registerCommands(context, activeProfileStore, statusBar, logger, launcher);
+  logger.info(`Activated with profile ${initialProfile.name} at ${initialProfile.codexHome}.`);
+  registerCommands(
+    context,
+    activeProfileStore,
+    statusBar,
+    logger,
+    cliLauncher,
+    workspaceLauncher,
+  );
 }
 
 export function deactivate(): void {
