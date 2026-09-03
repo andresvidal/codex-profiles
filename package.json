@@ -40,15 +40,9 @@
             "type": "object",
             "required": ["id", "name", "codexHome"],
             "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "codexHome": {
-                "type": "string"
-              }
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "codexHome": { "type": "string" }
             },
             "additionalProperties": false
           }
@@ -59,11 +53,14 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "check": "tsc --noEmit -p ./"
+    "check": "tsc --noEmit -p ./",
+    "test": "tsx --test test/**/*.test.ts",
+    "ci": "npm run check && npm test"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/vscode": "^1.104.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }
