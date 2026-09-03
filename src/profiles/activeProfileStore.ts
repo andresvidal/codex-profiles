@@ -1,13 +1,13 @@
 import type { CodexProfile } from './profile';
 
 export class ActiveProfileStore {
-  private activeProfile: CodexProfile | undefined;
+  constructor(private activeProfile: CodexProfile) {}
 
-  get(): CodexProfile | undefined {
+  get(): CodexProfile {
     return this.activeProfile;
   }
 
-  set(profile: CodexProfile | undefined): void {
+  set(profile: CodexProfile): void {
     this.activeProfile = profile;
   }
 }
