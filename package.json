@@ -1,0 +1,63 @@
+{
+  "name": "codex-profiles",
+  "displayName": "Codex Profiles",
+  "description": "Manage multiple OpenAI Codex profiles cleanly across VS Code windows.",
+  "version": "0.0.1",
+  "publisher": "andresvidal",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codexProfiles.selectProfile",
+        "title": "Codex Profiles: Select Profile"
+      },
+      {
+        "command": "codexProfiles.showActiveProfile",
+        "title": "Codex Profiles: Show Active Profile"
+      }
+    ],
+    "configuration": {
+      "title": "Codex Profiles",
+      "properties": {
+        "codexProfiles.profiles": {
+          "type": "array",
+          "default": [],
+          "description": "Configured Codex profiles. Authentication remains owned by Codex inside each CODEX_HOME.",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "codexHome"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "codexHome": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "check": "tsc --noEmit -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.104.0",
+    "typescript": "^5.7.2"
+  }
+}
