@@ -1,58 +1,132 @@
-# ADR-006: Pre-activation Codex IDE runtime binding
+# ADR-006: Deterministic Codex IDE runtime binding
 
 ## Status
 
-Experimental, partially validated.
+Implemented experimentally; live multi-window validation required.
 
 ## Context
 
-Codex Profiles needs to bind only the official Codex runtime in a VS Code window to the selected account home while preserving the user's normal VS Code profile, settings, extensions, keybindings, theme, and workspace.
+Codex Profiles needs to bind only the official Codex runtime in a VS Code window to the selected account home while preserving the user's normal VS Code profile, settings, extensions, keybindings, theme, and physical workspace.
 
-The official Codex IDE extension (`openai.chatgpt`) starts a Codex app-server process when the extension activates. The child process inherits the extension-host environment, including `CODEX_HOME`.
+The official Codex IDE extension (`openai.chatgpt`) starts a Codex app-server process when the extension activates. That child process inherits the extension-host environment, including `CODEX_HOME`.
 
-Existing extensions such as Session Router for Codex independently use the same general seam: arrange the desired Codex environment before the official extension activates. That validates the direction, but their project-routing model does not satisfy Codex Profiles' stricter requirement that two windows may open the same repository with different accounts.
+Simply activating Codex Profiles eagerly and setting `process.env.CODEX_HOME` is not sufficient as a production guarantee. VS Code does not provide a general ordering guarantee that an eager `*` extension will activate before another extension whose view or chat-session activation event has already been requested.
 
-The official `chatgpt.cliExecutable` setting is not an appropriate production routing mechanism. OpenAI documents it as development-only, and changing the executable path would couple Codex Profiles to a debug-oriented extension setting rather than the normal bundled runtime.
+Observed official Codex activation events include its Codex chat session and Codex view. Existing Codex integrations also identify Codex conversation editor tabs by the `chatgpt.conversationEditor` view type with `openai-codex` URIs.
 
 ## Decision
 
-Codex Profiles now contains an experimental `CodexIdeRuntimeAdapter`.
+Codex Profiles uses a controlled reload transaction when switching an already-active Codex IDE runtime.
 
-When the official extension is not active, the adapter sets the current extension host's `CODEX_HOME` to the selected profile home. If `openai.chatgpt` activates afterward, its app-server child process can inherit that account home without changing VS Code user data or credentials.
+### Startup binding
 
-Codex Profiles activates eagerly so it can prepare the environment before normal lazy activation of the official Codex extension.
+The Default Codex home is captured immutably from the extension host's inherited environment before Codex Profiles changes `process.env`.
 
-The adapter never activates, patches, restarts, or modifies `openai.chatgpt`. It also never reads or writes Codex authentication data.
+For each VS Code workspace identity, Codex Profiles stores only the selected profile ID in VS Code `workspaceState`. No authentication data or Codex configuration contents are stored there.
 
-If the official Codex extension is already active with a different `CODEX_HOME`, Codex Profiles refuses to report a successful switch. The existing runtime remains active and the selected profile is not changed.
+At activation:
 
-## Why switching an already-active runtime is not enabled yet
+1. Resolve the selected profile for the current workspace identity.
+2. Set `process.env.CODEX_HOME` to that profile home while `openai.chatgpt` is still inactive.
+3. Only after that binding is established may Codex UI be restored/opened.
 
-Changing `process.env.CODEX_HOME` after the official extension has started does not retarget the already-running app-server.
+The official extension therefore continues to spawn its normal bundled `codex app-server`; Codex Profiles changes only the inherited `CODEX_HOME`.
 
-A window or extension-host reload could restart Codex, but a second problem remains: the selected profile must survive that restart in a way that is unique to the individual VS Code window.
+### Switching after Codex is active
 
-Workspace-scoped state is insufficient because Codex Profiles explicitly targets this case:
+Changing `process.env.CODEX_HOME` after `openai.chatgpt` has started cannot retarget the already-running app-server. The switch transaction therefore performs these steps:
 
 ```text
-Window A -> same repository -> Personal
-Window B -> same repository -> Work
+Select Work
+    ↓
+persist Work for this workspace identity
+    ↓
+capture open Codex conversation URIs
+    ↓
+close Codex conversation editor tabs
+    ↓
+close the auxiliary bar so a Codex sidebar is not restored during startup
+    ↓
+reload this VS Code window
+    ↓
+Codex Profiles activates
+    ↓
+resolve Work from workspaceState
+    ↓
+set CODEX_HOME=Work
+    ↓
+reopen Codex sidebar
+    ↓
+restore captured Codex conversations
+    ↓
+openai.chatgpt activates and app-server inherits Work
 ```
 
-A handoff keyed only by workspace would make those windows collide. Until a reliable per-window reload handoff is validated, Codex Profiles does not automatically reload on account switch.
+The crucial difference from eager-activation-only injection is that the known Codex UI surfaces that request official-extension activation are removed before reload. They are restored only after the target `CODEX_HOME` is set.
+
+### Same repository in two account windows
+
+VS Code `workspaceState` is scoped to a workspace identity, not to a physical repository path. Two windows that must use different Codex profiles therefore need distinct VS Code workspace identities.
+
+This does **not** require separate VS Code user data or VS Code profiles.
+
+VS Code's built-in **Duplicate As Workspace in New Window** command (`workbench.action.duplicateWorkspaceInNewWindow`) creates a new untitled workspace containing the same physical folders and copies the workspace settings. VS Code source shows that the command creates a new untitled workspace and then opens it in a new window while retaining the normal user environment.
+
+This gives the target topology:
+
+```text
+Window A workspace identity A
+  physical repo: /src/project
+  Codex profile: Default
+
+Window B workspace identity B
+  physical repo: /src/project
+  Codex profile: Work
+
+Shared:
+  VS Code user profile
+  extensions
+  user settings
+  physical repo files
+  .vscode/settings.json
+  repo/.codex/config.toml
+
+Isolated:
+  workspaceState profile selection
+  CODEX_HOME
+  Codex authentication/session state
+```
+
+A normal saved `.code-workspace` opened twice would still represent one workspace identity, so Codex Profiles should not pretend it provides independent per-window state in that case. The duplicate-workspace flow is the supported mechanism for simultaneous same-repository account windows unless VS Code exposes a stronger true window-local persistence API.
+
+## Authentication boundary
+
+The runtime binding never reads, writes, copies, snapshots, or swaps `auth.json` or tokens.
+
+Each selected `CODEX_HOME` contains authentication managed entirely by Codex itself.
+
+## Rejected approaches
+
+- `--user-data-dir`: deterministic but changes the development environment, violating the product invariant.
+- Global `auth.json` swapping: deterministic only for one global active account and cannot support simultaneous different accounts safely.
+- `chatgpt.cliExecutable`: development/debug-oriented and not an appropriate production routing mechanism.
+- Eager `*` activation alone: technically useful but has an activation-order race.
+- Workspace-path-only routing: cannot distinguish two account windows pointed at the same physical repository.
 
 ## Consequences
 
-- A profile can be selected for the IDE before the official Codex extension activates in that window.
-- The official extension continues to launch its normal bundled Codex runtime.
-- No alternate VS Code `--user-data-dir` is introduced.
-- No `auth.json` swapping or credential snapshotting is introduced.
-- Selecting a different profile after Codex is already active is blocked rather than producing misleading state.
-- Same-repository, different-account windows remain the acceptance test for the reload-safe handoff.
+- Switching an active IDE account intentionally reloads only the current window.
+- Codex-specific editor/sidebar UI is temporarily closed to remove startup activation triggers and restored afterward.
+- Default-home identity cannot drift when `process.env.CODEX_HOME` is rebound to a named profile.
+- Same-repository simultaneous accounts require distinct VS Code workspace identities, which can be created without separate user-data directories.
+- No credential management is introduced.
 
-## Next validation
+## Required validation before calling Phase 3 complete
 
-1. Verify on macOS, Windows, and Linux that `openai.chatgpt` app-server inherits the pre-set `CODEX_HOME`.
-2. Verify two normal VS Code windows can select different homes before Codex activation and authenticate independently.
-3. Identify a reload-safe, per-window handoff mechanism that does not use workspace state or separate VS Code user data.
-4. Only then enable account switching after the official runtime is already active.
+1. Verify on macOS, Windows, and Linux that the official app-server inherits the selected home after the controlled reload.
+2. Verify restored `openai-codex` conversation editors reopen successfully after switching.
+3. Use **Duplicate As Workspace in New Window** to open the same physical repository twice.
+4. Bind Window A to Default and Window B to Work.
+5. Confirm both official Codex app-server processes remain authenticated to different account homes simultaneously.
+6. Verify editing `.vscode/settings.json` and repository `.codex/config.toml` remains shared between both windows.
+7. Document Remote SSH, WSL, and Dev Container behavior separately because extension-host placement changes where `CODEX_HOME` is evaluated.
