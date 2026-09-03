@@ -2,6 +2,7 @@ import type { CodexProfile } from '../profiles/profile';
 import { resolveProfilePath } from '../profiles/profilePaths';
 
 export interface CodexSessionEnvironment {
+  readonly [key: string]: string;
   readonly CODEX_HOME: string;
 }
 
