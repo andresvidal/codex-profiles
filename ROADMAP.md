@@ -40,8 +40,11 @@ Deliverables:
 - [x] Default Codex profile remains untouched
 - [x] Shared-vs-isolated Codex configuration mode
 - [x] New account homes share Default `config.toml` by default
+- [x] Projection ownership tracked with hashes only; no account data in extension state
+- [x] Diverged or untracked profile configuration is preserved
 - [x] Existing reused homes keep isolated configuration by default
 - [x] Cross-platform tests for shared configuration projection
+- [x] CI invariant preventing production auth-file or SecretStorage credential management
 - [x] Per-profile VS Code `--user-data-dir` architecture removed
 - [ ] Multiple account support validated during real Codex CLI sessions
 - [ ] VS Code-host integration test for terminal launch options
@@ -58,11 +61,10 @@ Deliverables:
 
 - [ ] Identify and validate a supported Codex IDE/app-server runtime binding for account home selection
 - [ ] Keep VS Code settings, extensions, themes, keybindings, and extension state shared
-- [ ] Bind the selected account to only the Codex runtime in each window
+- [ ] Bind the selected account home only to the Codex runtime in each window
 - [ ] Support two simultaneous windows with different Codex accounts against the same repository
 - [ ] Define runtime restart/reload behavior when changing the active account
-- [ ] Evaluate opaque credential snapshotting only if required by the supported runtime integration
-- [ ] Prevent stale-token/refresh races if credential snapshots become necessary
+- [ ] Preserve the Codex-owned authentication boundary; do not solve IDE binding with auth-file swapping
 - [ ] Cross-window and cross-platform integration tests
 - [ ] Remote SSH / WSL / Dev Container behavior documented
 
